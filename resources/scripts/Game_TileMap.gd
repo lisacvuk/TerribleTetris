@@ -16,34 +16,14 @@ var timer = 0
 var current_block
 var current_block_position
 var current_block_sprites
+var rotated = 0
 
 var unit_sprite = preload("res://resources/scenes/Sprite.tscn")
-
-var block_types = [
-	[0, 1, 1, 0,
-	 0, 1, 0, 0,
-	 0, 1, 0, 0,
-	 0, 0, 0, 0],
-	[0, 1, 1, 0,
-	 0, 0, 1, 0,
-	 0, 0, 1, 0,
-	 0, 0, 0, 0],
-	[0, 0, 0, 0,
-	 0, 1, 1, 0, 
-	 0, 1, 1, 0,
-	 0, 0, 0, 0],
-	[1, 1, 1, 1,
-	 0, 0, 0, 0,
-	 0, 0, 0, 0,
-	 0, 0, 0, 0],
-	[0, 1, 0, 0,
-	 0, 1, 1, 0,
-	 0, 1, 0, 0,
-	 0, 0, 0, 0],
-]
+var block_types2 = preload("res://resources/scripts/Game_BlockTypes.gd").new().blocks
 
 # Initiates everything.
 func _ready():
+	randomize()
 	setup_board()
 	new_block()
 	set_process(true)
@@ -52,10 +32,11 @@ func _ready():
 
 # Update sprites of the falling block.
 func update_block_sprites():
+	var edge_length = sqrt(current_block[rotated].size())
 	var i = 0
-	for x in range(4):
-		for y in range(4):
-			if current_block[x + y * 4] == 1:
+	for x in range(edge_length):
+		for y in range(edge_length):
+			if current_block[rotated][x + y * edge_length] == 1:
 				var sprite_pos = Vector2(
 						x * block_size.x + 
 						position_to_blocks(current_block_position).x * block_size.x,
@@ -67,17 +48,22 @@ func update_block_sprites():
 
 # Creates a new block at the starting position.
 func new_block():
-	current_block = block_types[randi()%block_types.size()]
+	rotated = 0
+	current_block = block_types2[rand_range(0, block_types2.size())]
+	#current_block = block_types2[5]
 	current_block_position = blocks_to_position(Vector2(table_width/2-2, 0))
 	current_block_sprites = []
-	for block in get_block_positions(current_block):
+	for block in get_block_positions(current_block[rotated]):
 		if table[block] != null:
 			game_over()
 			return
 	var color = Color(randf(), randf(), randf())
 	for i in range(4):
+		var rotate = rand_range(0, 1)
 		var sprite = unit_sprite.instance()
 		sprite.set_modulate(color)
+		if rotate > 0.5:
+			sprite.rotation = PI/2
 		current_block_sprites.append(sprite)
 		add_child(sprite)
 	update_block_sprites()
@@ -93,17 +79,18 @@ func blocks_to_position(pos):
 # Returns an array of all positions of the falling
 # blocks' sprites
 func get_block_positions(blocks):
+	var edge_length = sqrt(current_block[rotated].size())
 	var returned = []
-	for x in range(4):
-		for y in range(4):
-			if blocks[x + y * 4] == 1:
+	for x in range(edge_length):
+		for y in range(edge_length):
+			if blocks[x + y * edge_length] == 1:
 				returned.append(position_to_blocks(current_block_position) + Vector2(x, y))
 	return returned
 
 # Returns wether or not the block can be moved
 # in that direction
 func is_movable(pos):
-	var block_positions = get_block_positions(current_block)
+	var block_positions = get_block_positions(current_block[rotated])
 	
 	if pos.x != 0:
 		for block in block_positions:
@@ -122,7 +109,7 @@ func is_movable(pos):
 # Writes the current block to map.
 func write_to_map():
 	var i = 0
-	for block in get_block_positions(current_block):
+	for block in get_block_positions(current_block[rotated]):
 		table[Vector2(block.x, block.y)] = current_block_sprites[i]
 		current_block_sprites[i].position = block * block_size
 		i+=1
@@ -186,8 +173,8 @@ func game_over():
 	score = 0
 
 func is_rotateable():
-	var rotated = rotate()
-	for pos in get_block_positions(rotated):
+	var rotated_t = rotate()
+	for pos in get_block_positions(current_block[rotated_t]):
 		if pos.x < 0 or pos.x >= table_width or pos.y >= table_height:
 			return false
 		if table[pos] != null:
@@ -195,13 +182,11 @@ func is_rotateable():
 	return true
 
 func rotate():
-	var b = Array()
-	for i in [3, 2, 1, 0]:
-		b.append(current_block[i])
-		b.append(current_block[i+4])
-		b.append(current_block[i+8])
-		b.append(current_block[i+12])
-	return b
+	#rotate = rotate + 1
+	if current_block.size() - 1 > rotated:
+		return rotated + 1
+	else:
+		return 0
 
 func _input(event):
 	if event.is_action_pressed("ui_left"):
@@ -212,7 +197,7 @@ func _input(event):
 			move(Vector2(1, 0))
 	if event.is_action_pressed("ui_up"):
 		if is_rotateable():
-			current_block = rotate()
+			rotated = rotate()
 			update_block_sprites()
 	if event.is_action_pressed("ui_down"):
 		if is_movable(Vector2(0, 1)):

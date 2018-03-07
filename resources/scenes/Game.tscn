@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://resources/scripts/Game_TileMap.gd" type="Script" id=1]
 [ext_resource path="res://resources/scripts/Main_Highscores.gd" type="Script" id=2]
 [ext_resource path="res://resources/images/background.png" type="Texture" id=3]
+[ext_resource path="res://resources/scripts/Game_BlockTypes.gd" type="Script" id=4]
 
 [node name="Game" type="Node2D" index="0"]
 
@@ -56,5 +57,9 @@ position = Vector2( 432, 336 )
 z_index = -1
 texture = ExtResource( 3 )
 _sections_unfolded = [ "Transform", "Z Index" ]
+
+[node name="BlockTypes" type="Node" parent="." index="3"]
+
+script = ExtResource( 4 )
 
 
